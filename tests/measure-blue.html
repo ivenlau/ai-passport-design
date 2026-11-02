@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<canvas id="c" width="605" height="931"></canvas>
+<pre id="out">loading…</pre>
+<script>
+// 精确测量照片中"点亮显示区"的边界：
+// 1) 屏幕内容是蓝/亮色系，机壳是灰/暗色 → 用颜色分类找屏幕像素
+// 2) 分行/列统计屏幕像素，取包围盒
+const img = new Image();
+img.onload = () => {
+  const ctx = document.getElementById('c').getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, 605, 931).data;
+  function px(x, y) {
+    const i = (y * 605 + x) * 4;
+    return { r: d[i], g: d[i + 1], b: d[i + 2] };
+  }
+  // 屏幕内容判定：蓝底 UI（b 明显大于 r）或亮青/绿/黄/红/白内容（亮度高且饱和度高）
+  function isScreen(p) {
+    const max = Math.max(p.r, p.g, p.b), min = Math.min(p.r, p.g, p.b);
+    const sat = max - min;
+    const blue = p.b > p.r + 18 && p.b > 60;         // 蓝色 UI 背景/文字
+    const vivid = sat > 55 && max > 110;             // 鲜艳内容（绿按钮/黄字/红字）
+    return blue || vivid;
+  }
+  // 在候选区域内求包围盒（逐步收紧，排除机壳上的彩色小件）
+  let minX = 999, minY = 999, maxX = -1, maxY = -1;
+  const counts = {};
+  for (let y = 100; y < 580; y++) {
+    for (let x = 100; x < 470; x++) {
+      if (isScreen(px(x, y))) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        counts[y] = (counts[y] || 0) + 1;
+      }
+    }
+  }
+  // 行直方图：连续大面积命中才是屏幕
+  const rows = Object.keys(counts).map(Number).sort((a, b) => a - b);
+  const bigRows = rows.filter(y => counts[y] > 80);
+  let minBY = bigRows[0], maxBY = bigRows[bigRows.length - 1];
+  // 列直方图
+  const colCounts = {};
+  for (let y = minBY; y <= maxBY; y++) {
+    for (let x = 100; x < 470; x++) {
+      if (isScreen(px(x, y))) colCounts[x] = (colCounts[x] || 0) + 1;
+    }
+  }
+  const cols = Object.keys(colCounts).map(Number).sort((a, b) => a - b);
+  const bigCols = cols.filter(x => colCounts[x] > 80);
+  let minBX = bigCols[0], maxBX = bigCols[bigCols.length - 1];
+
+  document.getElementById('out').textContent = JSON.stringify({
+    raw_bbox: { minX, minY, maxX, maxY },
+    display_bbox: { x: minBX, y: minBY, w: maxBX - minBX + 1, h: maxBY - minBY + 1 },
+    aspect: (maxBX - minBX + 1) / (maxBY - minBY + 1),
+    pct: {
+      left: (minBX / 605 * 100).toFixed(2),
+      top: (minBY / 931 * 100).toFixed(2),
+      width: ((maxBX - minBX + 1) / 605 * 100).toFixed(2),
+      height: ((maxBY - minBY + 1) / 931 * 100).toFixed(2)
+    }
+  }, null, 1);
+  document.title = 'ready';
+};
+img.src = '../assets/device-front.png';
+</script>
+</body></html>

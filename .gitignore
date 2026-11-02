@@ -1,0 +1,6 @@
+# 可再生的测试截图/扫描产物
+tests/out/
+
+# 系统杂物
+Thumbs.db
+.DS_Store

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passport Design — AI Passport UI/UX 设计工作台</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">PASSPORT<span>DESIGN</span></div>
+  <input id="projName" class="proj-name" title="应用名称" spellcheck="false">
+  <div class="save-state" id="saveState">未保存</div>
+  <nav id="tabs">
+    <button class="tab active" data-tab="design">设计</button>
+    <button class="tab" data-tab="flow">交互</button>
+    <button class="tab" data-tab="check">校验</button>
+    <button class="tab" data-tab="export">导出</button>
+    <button class="tab" data-tab="spec">规范</button>
+  </nav>
+  <div class="top-actions">
+    <button id="btnUndo" class="btn ghost" title="Ctrl+Z">撤销</button>
+    <button id="btnRedo" class="btn ghost" title="Ctrl+Y">重做</button>
+    <button id="btnImport" class="btn ghost">导入 JSON</button>
+    <button id="btnLoadExample" class="btn ghost">示例</button>
+    <button id="btnNewDoc" class="btn ghost">新建</button>
+    <button id="btnExportTop" class="btn primary">导出交付物</button>
+  </div>
+</header>
+
+<main>
+  <!-- ==================== 设计 ==================== -->
+  <section id="tab-design" class="tab-pane active">
+    <aside class="left">
+      <div class="panel grow">
+        <div class="panel-head">
+          <span>屏幕</span>
+          <button id="btnAddScreen" class="mini">＋</button>
+        </div>
+        <div id="screensList" class="list"></div>
+      </div>
+      <div class="panel grow-2">
+        <div class="panel-head"><span>图层（上=顶层）</span></div>
+        <div id="layersList" class="list"></div>
+        <div class="add-row">
+          <select id="elTypeSel">
+            <option value="rect">色块/面板</option>
+            <option value="label">文本</option>
+            <option value="button">按钮</option>
+            <option value="listItem">列表项</option>
+            <option value="progress">进度条</option>
+            <option value="arc">圆弧仪表</option>
+            <option value="image">图片</option>
+            <option value="icon">LVGL 图标</option>
+            <option value="battery">电量显示</option>
+          </select>
+          <button id="btnAddEl" class="mini">＋ 添加元素</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="center">
+      <div class="toolbar">
+        <label>设备大小
+          <select id="devSizeSel">
+            <option value="460" selected>紧凑</option>
+            <option value="560">标准</option>
+            <option value="680">宽松</option>
+            <option value="820">特大</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="chkGrid"> 布局网格</label>
+        <label class="chk"><input type="checkbox" id="chkRgb565" checked> RGB565 真实色</label>
+        <label class="bl">背光
+          <input type="range" id="rangeBacklight" min="0" max="100" value="100">
+          <span id="lblBacklight">100%</span>
+        </label>
+        <button id="btnFonts" class="btn" title="字体与字模（字符清单）管理">字模管理</button>
+        <button id="btnPreview" class="btn">▶ 预览（模拟三键）</button>
+      </div>
+
+      <div class="canvas-stage" id="canvasStage">
+        <div class="device-shell">
+          <div class="device-wrap" id="deviceWrap">
+            <img class="device-photo" src="assets/device-front.png" alt="FoloToy AI Passport">
+            <!-- 屏幕区：对位照片点亮显示区（126,142,284×378 / 605×931，像素扫描测定）-->
+            <div class="screen-holder">
+              <canvas id="viewCanvas"></canvas>
+              <canvas id="overlayCanvas"></canvas>
+              <div class="screen-off">屏幕已关闭<br><span>POWER 唤醒</span></div>
+            </div>
+            <!-- 真机键位：单击=CLICK，长按 500ms=LONG，双击=DOUBLE -->
+            <div class="key-chip power" data-key="POWER" title="电源：熄屏 / 唤醒">POWER</div>
+            <div class="key-chip up" data-key="UP" title="UP">UP</div>
+            <div class="key-chip down" data-key="DOWN" title="DOWN">DOWN</div>
+            <div class="key-chip ok" data-key="OK" title="OK">OK</div>
+          </div>
+          <div class="device-foot">FoloToy AI Passport · 240×320 ST7789P3 · 无触摸屏 · 三键 ADC 阶梯键 · 圆角 30px 遮罩</div>
+        </div>
+      </div>
+
+      <div class="statusbar" id="statusbar">就绪</div>
+    </div>
+
+    <aside class="right">
+      <div id="propsPanel" class="panel grow scroll"></div>
+    </aside>
+  </section>
+
+  <!-- ==================== 交互 ==================== -->
+  <section id="tab-flow" class="tab-pane">
+    <div class="flow-wrap">
+      <div class="panel">
+        <div class="panel-head">
+          <span>三键绑定矩阵</span>
+          <select id="flowScreenSel"></select>
+        </div>
+        <div id="keyMatrix" class="matrix"></div>
+        <div id="flowLegend" class="hint pad"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>导航图（点击节点跳转）</span></div>
+        <svg id="navGraph" class="nav-graph"></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 校验 ==================== -->
+  <section id="tab-check" class="tab-pane">
+    <div class="check-page">
+      <div class="panel-head big">
+        <span>设计规则校验</span>
+        <button id="btnRunCheck" class="btn primary">重新校验</button>
+      </div>
+      <div id="checkSummary" class="check-summary"></div>
+      <div id="checkList" class="check-list"></div>
+      <div class="hint pad">
+        点击任意条目可跳转到对应屏幕/元素。错误必须清零后再导出交付；警告建议修复；
+        提示为项目经验（字模、LVGL 池、电量约定等）。规则依据 ai-passport 仓库文档与社区经验。
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 导出 ==================== -->
+  <section id="tab-export" class="tab-pane">
+    <div class="export-wrap">
+      <div class="panel">
+        <div class="panel-head"><span>交付物（交给开发代理）</span></div>
+        <div class="export-actions">
+          <button id="btnExportJson" class="btn primary">design.json（UI/UX 数据）</button>
+          <button id="btnExportMd" class="btn primary">handoff.md（开发交接文档）</button>
+          <button id="btnExportPng" class="btn">屏幕 PNG 快照</button>
+          <button id="btnExportAll" class="btn">全部导出</button>
+          <button id="btnCopyMd" class="btn ghost">复制交接文档</button>
+        </div>
+        <div class="hint pad">
+          handoff.md 是 UI/UX 的唯一规格来源：逐元素像素级规格 + RGB565 色值 + 字模字符清单 +
+          三键交互表 + 行为注记 + 验收清单。开发代理按 ai-passport 的 AGENTS.md / passport-develop 流程实现，
+          并以 PNG 快照做逐像素对照。交付前请在「设计」页开预览模式，用真机键位完整走查一遍交互。
+        </div>
+        <div class="panel-head"><span>字体子集生成命令（如用到自定义子集）</span></div>
+        <textarea id="fontCmds" class="code-area" rows="6" readonly></textarea>
+        <div class="panel-head"><span>handoff.md 预览</span></div>
+        <textarea id="handoffPreview" class="code-area" rows="22" readonly></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 规范 ==================== -->
+  <section id="tab-spec" class="tab-pane">
+    <div class="spec-wrap">
+      <div class="panel">
+        <div class="panel-head">
+          <span>规范 · 方法 · 流程</span>
+          <div id="specTabs" class="subtabs"></div>
+          <button id="btnCopyPrompt" class="btn primary">复制 AI 设计提示词</button>
+        </div>
+        <div id="specBody"></div>
+        <div class="hint pad">
+          完整规范文档（供 AI agent 直接读取）：本目录 <code>docs/DESIGN_SPEC.md</code>（数据规范）、
+          <code>docs/AI_DESIGN_GUIDE.md</code>（AI 设计流程）、<code>docs/DEV_HANDOFF_GUIDE.md</code>（开发还原指南）。
+          AI 设计产出 design.json 后，用顶栏「导入 JSON」载入本工具校验与微调。
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="js/util.js"></script>
+<script src="js/model.js"></script>
+<script src="js/example-data.js"></script>
+<script src="js/widgets.js"></script>
+<script src="js/render.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/export.js"></script>
+<script src="js/docs.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/interaction.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
